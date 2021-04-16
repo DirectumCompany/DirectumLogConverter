@@ -45,7 +45,7 @@ namespace DirectumLogConverter
 
           foreach (var jsonPair in jsonDict)
           {
-            var result = string.Empty;
+            string result;
             switch (jsonPair.Key)
             {
               case "st":
@@ -62,7 +62,7 @@ namespace DirectumLogConverter
                 result = ConvertSpan(jsonPair.Value);
                 break;
               default:
-                result = ConvertDefault(jsonPair.Value);
+                result = Convert(jsonPair.Value);
                 break;
             }
 
@@ -74,7 +74,7 @@ namespace DirectumLogConverter
         }
         catch (Exception)
         {
-          formattedValue = formatter.Format(new Dictionary<string, string> {{string.Empty, line}});
+          formattedValue = formatter.Format(new Dictionary<string, string> { { string.Empty, line } });
         }
 
         if (!string.IsNullOrEmpty(formattedValue))
@@ -90,19 +90,27 @@ namespace DirectumLogConverter
     /// </summary>
     /// <param name="json">Строка-json.</param>
     /// <returns>Словарь значений.</returns>
-    internal static IDictionary<string, IJEnumerable<JToken>> GetJsonValues(string json)
+    private static IDictionary<string, IJEnumerable<JToken>> GetJsonValues(string json)
     {
       return JObject.Parse(json).Properties().ToDictionary(kv => kv.Name, kv => kv.Values());
     }
 
     /// <summary>
-    /// Конвертация свойства по умолчанию.
+    /// Конвертация свойства в строку.
     /// </summary>
     /// <param name="jTokens">Набор токенов.</param>
+    /// <param name="prefix">Префикс строки.</param>
+    /// <param name="postfix">Постфикс строки.</param>
     /// <returns>Свойство в виде строки.</returns>
-    private static string ConvertDefault(IJEnumerable<JToken> jTokens)
+    private static string Convert(IEnumerable<JToken> jTokens, string prefix = null, string postfix = null)
     {
-      return string.Join(", ", jTokens.Select(jt => jt.ToString().Replace("\n", string.Empty).Replace("\r", string.Empty)));
+      var result = new StringBuilder();
+      if (!string.IsNullOrEmpty(prefix))
+        result.Append(prefix);
+      result.AppendJoin(", ", jTokens.Select(jt => jt.ToString().Replace("\n", string.Empty).Replace("\r", string.Empty)));
+      if (!string.IsNullOrEmpty(postfix))
+        result.Append(postfix);
+      return result.ToString();
     }
 
     /// <summary>
@@ -110,9 +118,9 @@ namespace DirectumLogConverter
     /// </summary>
     /// <param name="jTokens">Набор токенов.</param>
     /// <returns>Аргумент в виде строки.</returns>
-    private static string ConvertArguments(IJEnumerable<JToken> jTokens)
+    private static string ConvertArguments(IEnumerable<JToken> jTokens)
     {
-      return $"({ConvertDefault(jTokens)})";
+      return Convert(jTokens, "(", ")");
     }
 
     /// <summary>
@@ -120,9 +128,19 @@ namespace DirectumLogConverter
     /// </summary>
     /// <param name="jTokens">Набор токенов.</param>
     /// <returns>Свойства в виде строки.</returns>
-    private static string ConvertCustomProperties(IJEnumerable<JToken> jTokens)
+    private static string ConvertCustomProperties(IEnumerable<JToken> jTokens)
     {
-      return $"[{ConvertDefault(jTokens)}]";
+      return Convert(jTokens, "[", "]");
+    }
+
+    /// <summary>
+    /// Сконвертировать спан.
+    /// </summary>
+    /// <param name="jTokens">Набор токенов.</param>
+    /// <returns></returns>
+    private static string ConvertSpan(IEnumerable<JToken> jTokens)
+    {
+      return Convert(jTokens, "Span(", ")");
     }
 
     /// <summary>
@@ -133,14 +151,14 @@ namespace DirectumLogConverter
     private static string ConvertException(IJEnumerable<JToken> jTokens)
     {
       var result = new StringBuilder("\n");
-      var type = jTokens.OfType<JProperty>().Where(property => property.Name == "type").FirstOrDefault()?.Value.ToString();
-      var message = jTokens.OfType<JProperty>().Where(property => property.Name == "m").FirstOrDefault()?.Value.ToString();
-      var stack = jTokens.OfType<JProperty>().Where(property => property.Name == "stack").FirstOrDefault()?.Value.ToString();
+      var type = jTokens.OfType<JProperty>().FirstOrDefault(property => property.Name == "type")?.Value.ToString();
+      var message = jTokens.OfType<JProperty>().FirstOrDefault(property => property.Name == "m")?.Value.ToString();
+      var stack = jTokens.OfType<JProperty>().FirstOrDefault(property => property.Name == "stack")?.Value.ToString();
 
       if (!string.IsNullOrEmpty(type))
         result.Append(type);
       else
-        result.Append(string.Join('\n', jTokens.Select(jt => jt.ToString())));
+        result.AppendJoin('\n', jTokens.Select(jt => jt.ToString()));
 
       if (!string.IsNullOrEmpty(message))
       {
@@ -155,16 +173,6 @@ namespace DirectumLogConverter
       }
 
       return result.ToString();
-    }
-
-    /// <summary>
-    /// Сконвертировать спан.
-    /// </summary>
-    /// <param name="jTokens">Набор токенов.</param>
-    /// <returns></returns>
-    private static string ConvertSpan(IJEnumerable<JToken> jTokens)
-    {
-      return "Span(" + ConvertDefault(jTokens) + ")";
     }
 
     #endregion

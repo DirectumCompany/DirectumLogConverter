@@ -27,8 +27,7 @@ namespace DirectumLogConverter
     /// <returns></returns>
     private static string EscapeCsv(string str)
     {
-      bool mustQuote = str.Contains(";") || str.Contains("\"") || str.Contains("\r") || str.Contains("\n");
-      if (!mustQuote)
+      if (!str.Any(c => c is ';' or '"' or '\r' or '\n'))
         return str;
 
       var sb = new StringBuilder();
@@ -53,7 +52,7 @@ namespace DirectumLogConverter
       var firstElement = true;
       var onNewLine = string.Empty;
 
-      var keys = logElementsAtBeginning.Union(logLineElements.Keys.Except(logElementsAtBeginning)).ToArray();
+      var keys = logElementsAtBeginning.Union(logLineElements.Keys.Except(logElementsAtBeginning));
 
       foreach (var key in keys)
       {
