@@ -46,7 +46,17 @@ namespace LogConverter
         while ((line = reader.ReadLine()) != null)
         {
           var resultLine = new StringBuilder();
-          var jsonDict = GetJsonValues(line);
+          var jsonDict = new Dictionary<string, IJEnumerable<JToken>>();
+          try
+          {
+            jsonDict = GetJsonValues(line);
+          }
+          catch
+          {
+            writer.WriteLine(line);
+            continue;
+          }
+           
 
           foreach (var jsonPair in jsonDict)
           {
@@ -89,7 +99,7 @@ namespace LogConverter
     /// </summary>
     /// <param name="json">Строка-json.</param>
     /// <returns>Словарь значений.</returns>
-    internal static IDictionary<string, IJEnumerable<JToken>> GetJsonValues(string json)
+    internal static Dictionary<string, IJEnumerable<JToken>> GetJsonValues(string json)
     {
       return JObject.Parse(json).Properties().ToDictionary(kv => kv.Name, kv => kv.Values());
     }
