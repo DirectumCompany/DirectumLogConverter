@@ -4,6 +4,9 @@ using CommandLine;
 
 namespace LogConverter
 {
+  /// <summary>
+  /// Опции командной строки.
+  /// </summary>
   internal class CommandLineOptions
   {
     [Option('s', "source", Required = true, HelpText = "Source file.")]
@@ -14,6 +17,9 @@ namespace LogConverter
 
     #region Методы
 
+    /// <summary>
+    /// Провалидировать путь к конвертируемому файлу.
+    /// </summary>
     public void ValidateSource()
     {
       if (!File.Exists(this.Source)) 
@@ -22,6 +28,9 @@ namespace LogConverter
       }
     }
 
+    /// <summary>
+    /// Провалидировать или создать файл, куда будем конвертировать.
+    /// </summary>
     public void ValidateOrCreateDestination()
     {
       if (Directory.Exists(this.Destination))

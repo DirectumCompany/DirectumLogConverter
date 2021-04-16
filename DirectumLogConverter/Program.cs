@@ -3,6 +3,9 @@ using System;
 
 namespace LogConverter
 {
+  /// <summary>
+  /// Точка входа.
+  /// </summary>
   class Program
   {
     #region Вложенные типы

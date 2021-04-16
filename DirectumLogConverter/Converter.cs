@@ -6,12 +6,26 @@ using Newtonsoft.Json.Linq;
 
 namespace LogConverter
 {
+  /// <summary>
+  /// Класс, который конвертирует из одного формата в другой.
+  /// </summary>
   internal static class Converter
   {
     #region Константы
 
+    /// <summary>
+    /// Ширина поля для ИД процесса и потока.
+    /// </summary>
     private const int PidFieldWidth = 10;
+
+    /// <summary>
+    /// Ширина поля для уровня логирования.
+    /// </summary>
     private const int LevelFieldWidth = 10;
+
+    /// <summary>
+    /// Ширина поля названия логгера.
+    /// </summary>
     private const int LoggerFieldWidth = 30;
 
     #endregion
@@ -80,21 +94,41 @@ namespace LogConverter
       return JObject.Parse(json).Properties().ToDictionary(kv => kv.Name, kv => kv.Values());
     }
 
+    /// <summary>
+    /// Конвертация свойства по умолчанию.
+    /// </summary>
+    /// <param name="jTokens">Набор токенов.</param>
+    /// <returns>Свойство в виде строки.</returns>
     private static string ConvertDefault(IJEnumerable<JToken> jTokens)
     {
       return jTokens.Select(jt => jt.ToString().Replace("\n", string.Empty).Replace("\r", string.Empty)).Aggregate((s1, s2) => s1 + ", " + s2);
     }
 
+    /// <summary>
+    /// Сконвертировать аргументы.
+    /// </summary>
+    /// <param name="jTokens">Набор токенов.</param>
+    /// <returns>Аргумент в виде строки.</returns>
     private static string ConvertArguments(IJEnumerable<JToken> jTokens)
     {
       return $"({ConvertDefault(jTokens)})";
     }
 
+    /// <summary>
+    /// Сконвертировать свойства.
+    /// </summary>
+    /// <param name="jTokens">Набор токенов.</param>
+    /// <returns>Свойства в виде строки.</returns>
     private static string ConvertCustomProperties(IJEnumerable<JToken> jTokens)
     {
       return $"[{ConvertDefault(jTokens)}]";
     }
 
+    /// <summary>
+    /// Сконвертировать исключение.
+    /// </summary>
+    /// <param name="jTokens">Набор токенов.</param>
+    /// <returns>Отформатированное исключение в виде строки.</returns>
     private static string ConvertException(IJEnumerable<JToken> jTokens)
     {
       var result = new StringBuilder();
@@ -112,6 +146,11 @@ namespace LogConverter
       return result.ToString();
     }
 
+    /// <summary>
+    /// Сконвертировать спан.
+    /// </summary>
+    /// <param name="jTokens">Набор токенов.</param>
+    /// <returns></returns>
     private static string ConvertSpan(IJEnumerable<JToken> jTokens)
     {
       return "Span: " + ConvertDefault(jTokens);
