@@ -1,7 +1,9 @@
-﻿using CommandLine;
-using System;
+﻿using System;
+using System.Diagnostics;
+using System.IO;
+using DirectumLogConverter.Properties;
 
-namespace LogConverter
+namespace DirectumLogConverter
 {
   /// <summary>
   /// Точка входа.
@@ -11,33 +13,62 @@ namespace LogConverter
     #region Вложенные типы
 
     /// <summary>
-    /// Статусы, с которыми может завершаться программа.
+    /// Коды, с которыми может завершаться программа.
     /// </summary>
-    private enum ExitStatus
+    internal enum ExitCode
     {
       /// <summary>
-      /// Статус успешного завершения программы.
+      /// Код успешного завершения программы.
       /// </summary>
       Success = 0,
 
       /// <summary>
-      /// Статус завершения программы с ошибкой.
+      /// Код завершения программы с ошибкой.
       /// </summary>
-      Error = -1
+      Error = 1
     }
 
     #endregion
 
-    #region
+    #region Константы
 
     /// <summary>
-    /// Параметры командной строки.
+    /// Постфикс имени сконвертированого файла.
     /// </summary>
-    private static CommandLineOptions commandLineOptions;
+    public const string ConvertedFilenamePostfix = "_converted";
+
+    /// <summary>
+    /// Расширение сконвертированого в csv файла.
+    /// </summary>
+    private const string CsvFilenameExtension = ".csv";
 
     #endregion
 
     #region Методы
+
+    /// <summary>
+    /// Получить подтверждение пользователя на действие.
+    /// </summary>
+    /// <param name="message">Сообщение о .</param>
+    /// <returns></returns>
+    private static bool GetUserConfirmation(string message)
+    {
+      while (true)
+      {
+        Console.Write(Resources.UserConfirmationTemplate, message);
+        var response = Console.ReadLine()?.ToLowerInvariant();
+        switch (response)
+        {
+          case "y" or "yes":
+            return true;
+          case "n" or "no":
+            return false;
+          default:
+            Console.WriteLine(Resources.UnrecognizedInput, response);
+            break;
+        }
+      }
+    }
 
     /// <summary>
     /// Стандартная точка входа в приложение.
@@ -46,61 +77,37 @@ namespace LogConverter
     /// <returns>Код, с которым завершилась работа приложения.</returns>
     public static int Main(string[] args)
     {
-      var startTime = DateTime.Now;
-      var exitStatus = ExitStatus.Success;
+      var options = ConvertOptions.GetFromArgs(args);
+
+      if (string.IsNullOrEmpty(options.OutputPath))
+      {
+        var extension = Path.GetExtension(options.InputPath);
+        var newExtension = options.CsvFormat ? CsvFilenameExtension : extension;
+        options.OutputPath = options.InputPath.Substring(0, options.InputPath.Length - extension?.Length ?? 0) + ConvertedFilenamePostfix + newExtension;
+      }
+
+      if (File.Exists(options.OutputPath) && !GetUserConfirmation(string.Format(Resources.FileOverwriteConfirmation, options.OutputPath)))
+        Environment.Exit((int)ExitCode.Success);
+
+      var stopwatch = new Stopwatch();
       try
       {
-        ProcessCommandLineParameters(args);
-        Converter.ConvertJsonToTsv(commandLineOptions.Source, commandLineOptions.Destination);
-      }
-      catch (InvalidCommandLineOptionsException)
-      {
-        exitStatus = ExitStatus.Error;
-        Console.WriteLine("Command line parameters is invalid, please retry.");
+        Console.WriteLine(Resources.ConversionStarted, options.InputPath, options.OutputPath);
+        stopwatch.Start();
+        Converter.ConvertJson(options);
       }
       catch (Exception ex)
       {
-        exitStatus = ExitStatus.Error;
         Console.WriteLine(ex.ToString());
+        Environment.Exit((int)ExitCode.Error);
       }
-
-      var executionTime = DateTime.Now - startTime;
-      if (exitStatus == ExitStatus.Success)
+      finally
       {
-        Console.WriteLine($"The conversion was successful in {executionTime}!");
-      }
-      if (exitStatus == ExitStatus.Error)
-      {
-        Console.WriteLine($"The conversion was failed in {executionTime}!");
-        // TODO: добавить очистку созданных файлов и папок в случае неудачи.
+        stopwatch.Stop();
       }
 
-      return (int)exitStatus;
-    }
-
-    /// <summary>
-    /// Обработать аргументы командной строки.
-    /// </summary>
-    /// <param name="args">Аргументы командной строки.</param>
-    private static void ProcessCommandLineParameters(string[] args)
-    {
-      void SetupParser(ParserSettings settings)
-      {
-        settings.AutoVersion = false;
-        settings.EnableDashDash = true;
-        settings.HelpWriter = null;
-      }
-
-      using (var commandLineParser = new Parser(SetupParser))
-      {
-        var parserResult = commandLineParser.ParseArguments<CommandLineOptions>(args);
-        parserResult
-          .WithParsed(options => commandLineOptions = options)
-          .WithNotParsed(errors => throw new InvalidCommandLineOptionsException());
-      }
-
-      commandLineOptions.ValidateSource();
-      commandLineOptions.ValidateOrCreateDestination();
+      Console.WriteLine(Resources.ConversionDone, stopwatch.Elapsed.TotalSeconds);
+      return (int)ExitCode.Success;
     }
 
     #endregion

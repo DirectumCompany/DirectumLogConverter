@@ -1,95 +1,86 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
 using Newtonsoft.Json.Linq;
 
-namespace LogConverter
+namespace DirectumLogConverter
 {
   /// <summary>
   /// Класс, который конвертирует из одного формата в другой.
   /// </summary>
   internal static class Converter
   {
-    #region Константы
-
-    /// <summary>
-    /// Ширина поля для ИД процесса и потока.
-    /// </summary>
-    private const int PidFieldWidth = 10;
-
-    /// <summary>
-    /// Ширина поля для уровня логирования.
-    /// </summary>
-    private const int LevelFieldWidth = 10;
-
-    /// <summary>
-    /// Ширина поля названия логгера.
-    /// </summary>
-    private const int LoggerFieldWidth = 30;
-
-    #endregion
-
     #region Методы
 
     /// <summary>
-    /// Сконвертировать файл из JSON в TSV.
+    /// Сконвертировать JSON файл.
     /// </summary>
-    /// <param name="sourcePath">Путь к файлу, где хранятся json-строки.</param>
-    /// <param name="destinationPath">Путь к файлу, куда запишутся TSV-строки.</param>
-    internal static void ConvertJsonToTsv(string sourcePath, string destinationPath)
+    /// <param name="options">Опции конвертации.</param>
+    internal static void ConvertJson(ConvertOptions options)
     {
-      using (var writer = new StreamWriter(destinationPath, true, Encoding.Default))
-      using (var reader = new StreamReader(sourcePath, Encoding.Default))
+      IOutputLineFormatter formatter = options.CsvFormat ? new CsvLineFormatter() : new TsvLineFormatter();
+
+      using var reader = new StreamReader(options.InputPath, Encoding.UTF8);
+      using var writer = new StreamWriter(options.OutputPath, false, Encoding.UTF8);
+
+      if (options.CsvFormat)
       {
-        string line;
-        while ((line = reader.ReadLine()) != null)
+        var bom = Encoding.UTF8.GetPreamble();
+        writer.Write(bom);
+      }
+
+      while (true)
+      {
+        var line = reader.ReadLine();
+        if (line == null)
+          break;
+
+        string formattedValue;
+        try
         {
-          var resultLine = new StringBuilder();
-          var jsonDict = new Dictionary<string, IJEnumerable<JToken>>();
-          try
-          {
-            jsonDict = GetJsonValues(line);
-          }
-          catch
-          {
-            writer.WriteLine(line);
-            continue;
-          }
-           
+          var logLineElements = new Dictionary<string, string>();
+          var jsonDict = GetJsonValues(line);
 
           foreach (var jsonPair in jsonDict)
           {
+            var result = string.Empty;
             switch (jsonPair.Key)
             {
-              case "pid":
-                resultLine.Append(ConvertDefault(jsonPair.Value).PadLeft(PidFieldWidth));
-                break;
-              case "l":
-                resultLine.Append(ConvertDefault(jsonPair.Value).PadLeft(LevelFieldWidth));
-                break;
-              case "lg":
-                resultLine.Append(ConvertDefault(jsonPair.Value).PadLeft(LoggerFieldWidth));
-                break;
+              case "st":
               case "ex":
-                resultLine.Append(ConvertException(jsonPair.Value));
+                result = ConvertException(jsonPair.Value);
                 break;
               case "args":
-                resultLine.Append(ConvertArguments(jsonPair.Value));
+                result = ConvertArguments(jsonPair.Value);
                 break;
               case "cust":
-                resultLine.Append(ConvertCustomProperties(jsonPair.Value));
+                result = ConvertCustomProperties(jsonPair.Value);
                 break;
               case "span":
-                resultLine.Append(" ").Append(ConvertSpan(jsonPair.Value));
+                result = ConvertSpan(jsonPair.Value);
                 break;
               default:
-                resultLine.Append(" ").Append(ConvertDefault(jsonPair.Value));
+                result = ConvertDefault(jsonPair.Value);
                 break;
             }
+
+            if (!string.IsNullOrEmpty(result))
+              logLineElements[jsonPair.Key] = result;
           }
 
-          writer.WriteLine(resultLine.ToString());
+          formattedValue = formatter.Format(logLineElements);
+        }
+        catch (Exception)
+        {
+          formattedValue = formatter.Format(new Dictionary<string, string> {{string.Empty, line}});
+        }
+
+        if (!string.IsNullOrEmpty(formattedValue))
+        {
+          writer.Write(formattedValue);
+          writer.Write('\n');
         }
       }
     }
@@ -99,7 +90,7 @@ namespace LogConverter
     /// </summary>
     /// <param name="json">Строка-json.</param>
     /// <returns>Словарь значений.</returns>
-    internal static Dictionary<string, IJEnumerable<JToken>> GetJsonValues(string json)
+    internal static IDictionary<string, IJEnumerable<JToken>> GetJsonValues(string json)
     {
       return JObject.Parse(json).Properties().ToDictionary(kv => kv.Name, kv => kv.Values());
     }
@@ -111,7 +102,7 @@ namespace LogConverter
     /// <returns>Свойство в виде строки.</returns>
     private static string ConvertDefault(IJEnumerable<JToken> jTokens)
     {
-      return jTokens.Select(jt => jt.ToString().Replace("\n", string.Empty).Replace("\r", string.Empty)).Aggregate((s1, s2) => s1 + ", " + s2);
+      return string.Join(", ", jTokens.Select(jt => jt.ToString().Replace("\n", string.Empty).Replace("\r", string.Empty)));
     }
 
     /// <summary>
@@ -141,16 +132,26 @@ namespace LogConverter
     /// <returns>Отформатированное исключение в виде строки.</returns>
     private static string ConvertException(IJEnumerable<JToken> jTokens)
     {
-      var result = new StringBuilder();
-      var type = jTokens.Select(token => (JProperty)token).Where(property => property.Name == "type").FirstOrDefault().Value.ToString();
-      var message = jTokens.Select(token => (JProperty)token).Where(property => property.Name == "m").FirstOrDefault().Value.ToString();
-      var stack = jTokens.Select(token => (JProperty)token).Where(property => property.Name == "stack").FirstOrDefault().Value.ToString();
+      var result = new StringBuilder("\n");
+      var type = jTokens.OfType<JProperty>().Where(property => property.Name == "type").FirstOrDefault()?.Value.ToString();
+      var message = jTokens.OfType<JProperty>().Where(property => property.Name == "m").FirstOrDefault()?.Value.ToString();
+      var stack = jTokens.OfType<JProperty>().Where(property => property.Name == "stack").FirstOrDefault()?.Value.ToString();
 
-      result.Append($"\n\t{type}: {message}\n");
-      var stackLines = stack.Split("\r\n");
-      foreach (var l in stackLines)
+      if (!string.IsNullOrEmpty(type))
+        result.Append(type);
+      else
+        result.Append(string.Join('\n', jTokens.Select(jt => jt.ToString())));
+
+      if (!string.IsNullOrEmpty(message))
       {
-        result.Append("\t").Append(l).Append("\n");
+        result.Append(": ");
+        result.Append(message);
+      }
+
+      if (!string.IsNullOrEmpty(stack))
+      {
+        result.Append("\n   ");
+        result.Append(stack.Replace("\r\n", "\n"));
       }
 
       return result.ToString();
@@ -163,7 +164,7 @@ namespace LogConverter
     /// <returns></returns>
     private static string ConvertSpan(IJEnumerable<JToken> jTokens)
     {
-      return "Span: " + ConvertDefault(jTokens);
+      return "Span(" + ConvertDefault(jTokens) + ")";
     }
 
     #endregion
