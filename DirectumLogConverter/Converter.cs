@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 
 namespace DirectumLogConverter
@@ -12,10 +13,29 @@ namespace DirectumLogConverter
   /// </summary>
   internal static class Converter
   {
+    #region Поля и свойства
+
+    /// <summary>
+    /// Количество потоков, которое будет использовано для конвертации.
+    /// </summary>
+    private static readonly int threadsCount = Environment.ProcessorCount * 2;
+
+    /// <summary>
+    /// Пул задач конвертации.
+    /// </summary>
+    private static readonly Task<string>[] taskPool = new Task<string>[threadsCount];
+
+    /// <summary>
+    /// Буфер строк лога.
+    /// </summary>
+    private static readonly string[] logLineBuffer = new string[threadsCount];
+
+    #endregion
+
     #region Методы
 
     /// <summary>
-    /// Сконвертировать JSON файл.
+    /// Конвертировать JSON файл.
     /// </summary>
     /// <param name="options">Опции конвертации.</param>
     internal static void ConvertJson(ConvertOptions options)
@@ -31,57 +51,101 @@ namespace DirectumLogConverter
         writer.Write(bom);
       }
 
+      var index = 0;
+
       while (true)
       {
         var line = reader.ReadLine();
         if (line == null)
           break;
 
-        string formattedValue;
-        try
+        if (index == logLineBuffer.Length)
         {
-          var logLineElements = new Dictionary<string, string>();
-          var jsonDict = GetJsonValues(line);
+          ProcessLogLines(index, formatter, writer);
+          index = 0;
+        }
 
-          foreach (var jsonPair in jsonDict)
+        logLineBuffer[index] = line;
+        index++;
+      }
+
+      if (index > 0)
+        ProcessLogLines(index, formatter, writer);
+    }
+
+    /// <summary>
+    /// Выполнить обработку строк лога.
+    /// </summary>
+    /// <param name="count">Количество строк лога, которые нужно обработать.</param>
+    /// <param name="formatter">Форматтер строки лога.</param>
+    /// <param name="writer">Объект для записи результатов конвертации.</param>
+    private static void ProcessLogLines(int count, IOutputLineFormatter formatter, TextWriter writer)
+    {
+      for (int i = 0; i < count; i++)
+      {
+        taskPool[i] = new Task<string>(line => ConvertLogLine((string)line, formatter), logLineBuffer[i]);
+        taskPool[i].Start();
+      }
+
+      Task.WaitAll(taskPool);
+
+      for (int i = 0; i < count; i++)
+      {
+        var value = taskPool[i].Result;
+
+        if (string.IsNullOrEmpty(value))
+          continue;
+
+        writer.Write(value);
+        writer.Write('\n');
+      }
+    }
+
+    /// <summary>
+    /// Конвертировать строку лога.
+    /// </summary>
+    /// <param name="line">Строка лога.</param>
+    /// <param name="formatter">Форматтер строки лога.</param>
+    /// <returns>Конвертированная строка лога.</returns>
+    private static string ConvertLogLine(string line, IOutputLineFormatter formatter)
+    {
+      try
+      {
+        var logLineElements = new Dictionary<string, string>();
+        var jsonDict = GetJsonValues(line);
+
+        foreach (var jsonPair in jsonDict)
+        {
+          string value;
+          switch (jsonPair.Key)
           {
-            string result;
-            switch (jsonPair.Key)
-            {
-              case "st":
-              case "ex":
-                result = ConvertException(jsonPair.Value);
-                break;
-              case "args":
-                result = ConvertArguments(jsonPair.Value);
-                break;
-              case "cust":
-                result = ConvertCustomProperties(jsonPair.Value);
-                break;
-              case "span":
-                result = ConvertSpan(jsonPair.Value);
-                break;
-              default:
-                result = Convert(jsonPair.Value);
-                break;
-            }
-
-            if (!string.IsNullOrEmpty(result))
-              logLineElements[jsonPair.Key] = result;
+            case "st":
+            case "ex":
+              value = ConvertException(jsonPair.Value);
+              break;
+            case "args":
+              value = ConvertArguments(jsonPair.Value);
+              break;
+            case "cust":
+              value = ConvertCustomProperties(jsonPair.Value);
+              break;
+            case "span":
+              value = ConvertSpan(jsonPair.Value);
+              break;
+            default:
+              value = Convert(jsonPair.Value);
+              break;
           }
 
-          formattedValue = formatter.Format(logLineElements);
-        }
-        catch (Exception)
-        {
-          formattedValue = formatter.Format(new Dictionary<string, string> { { string.Empty, line } });
+          if (!string.IsNullOrEmpty(value))
+            logLineElements[jsonPair.Key] = value;
         }
 
-        if (!string.IsNullOrEmpty(formattedValue))
-        {
-          writer.Write(formattedValue);
-          writer.Write('\n');
-        }
+        return formatter.Format(logLineElements);
+      }
+      catch (Exception)
+      {
+        return formatter.Format(new Dictionary<string, string> { { string.Empty, line } });
       }
     }
 
@@ -114,7 +178,7 @@ namespace DirectumLogConverter
     }
 
     /// <summary>
-    /// Сконвертировать аргументы.
+    /// Конвертировать аргументы.
     /// </summary>
     /// <param name="jTokens">Набор токенов.</param>
     /// <returns>Аргумент в виде строки.</returns>
@@ -124,7 +188,7 @@ namespace DirectumLogConverter
     }
 
     /// <summary>
-    /// Сконвертировать свойства.
+    /// Конвертировать свойства.
     /// </summary>
     /// <param name="jTokens">Набор токенов.</param>
     /// <returns>Свойства в виде строки.</returns>
@@ -134,7 +198,7 @@ namespace DirectumLogConverter
     }
 
     /// <summary>
-    /// Сконвертировать спан.
+    /// Конвертировать спан.
     /// </summary>
     /// <param name="jTokens">Набор токенов.</param>
     /// <returns></returns>
@@ -144,7 +208,7 @@ namespace DirectumLogConverter
     }
 
     /// <summary>
-    /// Сконвертировать исключение.
+    /// Конвертировать исключение.
     /// </summary>
     /// <param name="jTokens">Набор токенов.</param>
     /// <returns>Отформатированное исключение в виде строки.</returns>

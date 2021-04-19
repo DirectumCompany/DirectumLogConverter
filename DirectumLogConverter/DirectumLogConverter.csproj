@@ -3,8 +3,15 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net5.0</TargetFramework>
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifiers>win-x64;linux-x64</RuntimeIdentifiers>
     <PublishTrimmed>true</PublishTrimmed>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <AssemblyName>dlc</AssemblyName>
+    <OutputPath>..\bin\</OutputPath>
+    <PublishDir>..\publish\$(RuntimeIdentifier)\</PublishDir>
+    <DebugType Condition=" '$(Configuration)' == 'Release' ">None</DebugType>
   </PropertyGroup>
 
   <ItemGroup>
