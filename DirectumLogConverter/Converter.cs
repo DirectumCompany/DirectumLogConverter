@@ -47,8 +47,8 @@ namespace DirectumLogConverter
 
       if (options.CsvFormat)
       {
-        var bom = Encoding.UTF8.GetPreamble();
-        writer.Write(bom);
+        var bom = Encoding.ASCII.GetString(Encoding.UTF8.GetPreamble()).ToCharArray();
+        writer.Write(bom, 0, bom.Length);
       }
 
       var index = 0;
@@ -87,7 +87,7 @@ namespace DirectumLogConverter
         taskPool[i].Start();
       }
 
-      Task.WaitAll(taskPool);
+      Task.WaitAll(count < threadsCount ? taskPool.Take(count).ToArray() : taskPool);
 
       for (int i = 0; i < count; i++)
       {
