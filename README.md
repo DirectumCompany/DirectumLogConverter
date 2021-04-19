@@ -1,20 +1,15 @@
-# Introduction 
-TODO: Give a short introduction of your project. Let this section explain the objectives or the motivation behind this project. 
+# Directum Log Converter
+Утилита для конвертации JSON-логов сервисов Directum в текстовый (человекочитаемый) и csv форматы.
 
-# Getting Started
-TODO: Guide users through getting your code up and running on their own system. In this section you can talk about:
-1.	Installation process
-2.	Software dependencies
-3.	Latest releases
-4.	API references
+## Как собрать
+Выполнить скрипт `publish.cmd` (должны быть установлены BuildTools 2019).
+Скрипт соберет утилиту в виде single-executable файлов для платформ win-x64 и linux-x64 (они появятся в одноименных подпапках папки publish).
 
-# Build and Test
-TODO: Describe and show how to build your code and run the tests. 
+## Как пользоваться
+`dlc <имя исходного файла> <имя сконвертированного файла>`
 
-# Contribute
-TODO: Explain how other users and developers can contribute to make your code better. 
+По умолчанию конвертация происходит в текстовый формат, если нужно сконвертировать в формат csv, то нужно добавить ключ `-с`.
 
-If you want to learn more about creating good readme files then refer the following [guidelines](https://docs.microsoft.com/en-us/azure/devops/repos/git/create-a-readme?view=azure-devops). You can also seek inspiration from the below readme files:
-- [ASP.NET Core](https://github.com/aspnet/Home)
-- [Visual Studio Code](https://github.com/Microsoft/vscode)
-- [Chakra Core](https://github.com/Microsoft/ChakraCore)
+Второй аргумент можно не указывать, тогда имя сконвертированного файла будет сформировано из имени исходного файла.<br/>Например, `WebServer.log` будет сконвертирован в файл `WebServer_converted.log`, либо в `WebServer_converted.csv` если выбран формат csv.
+
+Если выходной файл уже существует, то будет сделан запрос перед тем, как его перезаписать.
