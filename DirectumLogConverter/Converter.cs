@@ -41,15 +41,9 @@ namespace DirectumLogConverter
     internal static void ConvertJson(ConvertOptions options)
     {
       IOutputLineFormatter formatter = options.CsvFormat ? new CsvLineFormatter() : new TsvLineFormatter();
-
-      using var reader = new StreamReader(options.InputPath, Encoding.UTF8);
-      using var writer = new StreamWriter(options.OutputPath, false, Encoding.UTF8);
-
-      if (options.CsvFormat)
-      {
-        var bom = Encoding.ASCII.GetString(Encoding.UTF8.GetPreamble()).ToCharArray();
-        writer.Write(bom, 0, bom.Length);
-      }
+      using var readerStream = new FileStream(options.InputPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, FileOptions.SequentialScan);
+      using var reader = new StreamReader(readerStream, Encoding.UTF8);
+      using var writer = new StreamWriter(options.OutputPath, false, new UTF8Encoding(options.CsvFormat, true));
 
       var index = 0;
 
