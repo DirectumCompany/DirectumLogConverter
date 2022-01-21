@@ -14,7 +14,7 @@ namespace DirectumLogConverter
     /// <summary>
     /// Имена элементов строки лога, которые должны быть в начале.
     /// </summary>
-    private static readonly string[] logElementsAtBeginning = { "t", "pid", "v", "un", "tn" };
+    private static readonly string[] logElementsAtBeginning = { "t", "pid", "v", "un", "tn", "tr" };
 
     #endregion
 

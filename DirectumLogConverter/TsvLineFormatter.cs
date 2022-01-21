@@ -24,8 +24,9 @@ namespace DirectumLogConverter
     private static readonly IReadOnlyDictionary<string, int> defaultLogLineElementWidth = new Dictionary<string, int>
     {
       {"pid", 10},
-      {"l", 5},
-      {"lg", 30}
+      {"l", 6},
+      {"lg", 30},
+      {"tr", 20}
     };
 
     #endregion
