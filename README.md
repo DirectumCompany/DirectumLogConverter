@@ -1,4 +1,7 @@
 # Directum Log Converter
+
+[![Publish](https://github.com/DirectumCompany/DirectumLogConverter/actions/workflows/release.yml/badge.svg)](https://github.com/DirectumCompany/DirectumLogConverter/actions/workflows/release.yml)
+
 Утилита для конвертации JSON-логов сервисов Directum в текстовый формат (для удобного чтения) и csv-формат (для удобного анализа, например, в Microsoft Excel).
 
 ## Как скачать
