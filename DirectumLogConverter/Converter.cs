@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using DirectumLogConverter.Properties;
 using Newtonsoft.Json.Linq;
 
 namespace DirectumLogConverter
@@ -13,6 +14,21 @@ namespace DirectumLogConverter
   /// </summary>
   internal static class Converter
   {
+
+    #region Константы
+
+    /// <summary>
+    /// Постфикс имени сконвертированого файла.
+    /// </summary>
+    public const string ConvertedFilenamePostfix = "_converted";
+
+    /// <summary>
+    /// Расширение сконвертированого в csv файла.
+    /// </summary>
+    private const string CsvFilenameExtension = ".csv";
+
+    #endregion
+
     #region Поля и свойства
 
     /// <summary>
@@ -35,11 +51,56 @@ namespace DirectumLogConverter
     #region Методы
 
     /// <summary>
+    /// Конвертировать один файл.
+    /// </summary>
+    /// <param name="options">Опции конвертации.</param>
+    internal static void Convert(ConvertOptions options)
+    {
+
+      //TODO если имя файла не введено, уточнить.
+
+      if (string.IsNullOrEmpty(options.OutputPath))
+        options.OutputPath = GetConvertedFileName(options.InputPath, options.CsvFormat);
+
+      if (File.Exists(options.OutputPath) && !GetUserConfirmation(string.Format(Resources.FileOverwriteConfirmation, options.OutputPath)))
+        Environment.Exit((int)ExitCode.Success);
+
+      ConvertJson(options);
+    }
+
+    /// <summary>
+    /// Конвертировать множество файлов.
+    /// </summary>
+    /// <param name="options">Опции конвертации.</param>
+    internal static void BatchConvert(ConvertOptions options)
+    {
+      var files = Directory.GetFiles(Directory.GetCurrentDirectory())
+        .Where(name => !name.Contains(ConvertedFilenamePostfix)).ToArray();
+
+      var fileNamesList = new List<KeyValuePair<string, string>>();
+      foreach (var file in files)
+        fileNamesList.Add(new KeyValuePair<string, string>(file, GetConvertedFileName(file, options.CsvFormat)));
+
+      var isAnyConvertedFileAlreadyExists = fileNamesList.Any(fileNames => File.Exists(fileNames.Value));
+      if (isAnyConvertedFileAlreadyExists && !GetUserConfirmation(Resources.MultipleFilesOverwriteConfirmation))
+        Environment.Exit((int)ExitCode.Success);
+
+      foreach (var file in fileNamesList)
+      {
+        options.InputPath = Path.GetFileName(file.Key);
+        options.OutputPath = Path.GetFileName(file.Value);
+        ConvertJson(options);
+      }
+    }
+
+    /// <summary>
     /// Конвертировать JSON файл.
     /// </summary>
     /// <param name="options">Опции конвертации.</param>
     internal static void ConvertJson(ConvertOptions options)
     {
+      Console.WriteLine(Resources.ConversionStarted, options.InputPath, options.OutputPath);
+
       IOutputLineFormatter formatter = options.CsvFormat ? new CsvLineFormatter() : new TsvLineFormatter();
       using var readerStream = new FileStream(options.InputPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, FileOptions.SequentialScan);
       using var reader = new StreamReader(readerStream, Encoding.UTF8);
@@ -231,6 +292,43 @@ namespace DirectumLogConverter
       }
 
       return result.ToString();
+    }
+
+    /// <summary>
+    /// Сконвертировать имя файла.
+    /// </summary>
+    /// <param name="name">Имя файла.</param>
+    /// <param name="isCsvFormat">Конвертировать в формат CSV?</param>
+    /// <returns>Сконвертированное имя.</returns>
+    private static string GetConvertedFileName(string name, bool isCsvFormat)
+		{
+      var extension = Path.GetExtension(name);
+      var newExtension = isCsvFormat ? CsvFilenameExtension : extension;
+      return name.Substring(0, name.Length - extension?.Length ?? 0) + ConvertedFilenamePostfix + newExtension;
+    }
+
+    /// <summary>
+    /// Получить подтверждение пользователя на действие.
+    /// </summary>
+    /// <param name="message">Сообщение о .</param>
+    /// <returns>Подтверждение.</returns>
+    private static bool GetUserConfirmation(string message)
+    {
+      while (true)
+      {
+        Console.Write(Resources.UserConfirmationTemplate, message);
+        var response = Console.ReadLine()?.ToLowerInvariant();
+        switch (response)
+        {
+          case "y" or "yes":
+            return true;
+          case "n" or "no":
+            return false;
+          default:
+            Console.WriteLine(Resources.UnrecognizedInput, response);
+            break;
+        }
+      }
     }
 
     #endregion
