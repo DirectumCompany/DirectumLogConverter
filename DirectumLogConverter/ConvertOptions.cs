@@ -23,14 +23,17 @@ namespace DirectumLogConverter
 		[Option('b', "batch", Default = false)]
 		public bool BatchConvert { get; set; }
 
-		#endregion
+    [Option('f', "folder", Default = "")]
+    public string FolderPath { get; set; }
 
-		#region Методы
+    #endregion
 
-		/// <summary>
-		/// Показать справку и выйти.
-		/// </summary>
-		private static void ShowUsageAndExit()
+    #region Методы
+
+    /// <summary>
+    /// Показать справку и выйти.
+    /// </summary>
+    private static void ShowUsageAndExit()
     {
       Console.WriteLine(Resources.Usage, AppDomain.CurrentDomain.FriendlyName, Converter.ConvertedFilenamePostfix);
       Environment.Exit((int)ExitCode.Success);

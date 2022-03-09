@@ -56,8 +56,22 @@ namespace DirectumLogConverter
     /// <param name="options">Опции конвертации.</param>
     internal static void Convert(ConvertOptions options)
     {
+      if (options.InputPath == null)
+			{
+        Console.WriteLine("Enter file name");
+        options.InputPath = Console.ReadLine();
+				if (!File.Exists(options.InputPath))
+				{
+          Console.WriteLine($"File {options.InputPath} not found");
+          Environment.Exit((int)ExitCode.Error);
+				}
+			}
 
-      //TODO если имя файла не введено, уточнить.
+
+
+      // TODO Сделать конвертацию файла, используя options.FolderPath
+
+
 
       if (string.IsNullOrEmpty(options.OutputPath))
         options.OutputPath = GetConvertedFileName(options.InputPath, options.CsvFormat);
@@ -74,23 +88,10 @@ namespace DirectumLogConverter
     /// <param name="options">Опции конвертации.</param>
     internal static void BatchConvert(ConvertOptions options)
     {
-      var files = Directory.GetFiles(Directory.GetCurrentDirectory())
-        .Where(name => !name.Contains(ConvertedFilenamePostfix)).ToArray();
-
-      var fileNamesList = new List<KeyValuePair<string, string>>();
-      foreach (var file in files)
-        fileNamesList.Add(new KeyValuePair<string, string>(file, GetConvertedFileName(file, options.CsvFormat)));
-
-      var isAnyConvertedFileAlreadyExists = fileNamesList.Any(fileNames => File.Exists(fileNames.Value));
-      if (isAnyConvertedFileAlreadyExists && !GetUserConfirmation(Resources.MultipleFilesOverwriteConfirmation))
-        Environment.Exit((int)ExitCode.Success);
-
-      foreach (var file in fileNamesList)
-      {
-        options.InputPath = Path.GetFileName(file.Key);
-        options.OutputPath = Path.GetFileName(file.Value);
-        ConvertJson(options);
-      }
+      if (string.IsNullOrEmpty(options.FolderPath))
+        ConvertFromCurrentDirectory(options);
+      else
+        ConvertFromFolder(options);
     }
 
     /// <summary>
@@ -328,6 +329,61 @@ namespace DirectumLogConverter
             Console.WriteLine(Resources.UnrecognizedInput, response);
             break;
         }
+      }
+    }
+
+    /// <summary>
+    /// Получить пару значений имя/конвертированное имя файлов.
+    /// </summary>
+    /// <param name="options">Опции конвертации.</param>
+    /// <param name="files">Файлы для конвертации.</param>
+    /// <returns>Список пар имен файлов.</returns>
+    private static List<KeyValuePair<string, string>> GetFileNames(ConvertOptions options, string[] files)
+    {
+      var fileNamesList = new List<KeyValuePair<string, string>>();
+      foreach (var file in files)
+        fileNamesList.Add(new KeyValuePair<string, string>(file, GetConvertedFileName(file, options.CsvFormat)));
+
+      var isAnyConvertedFileAlreadyExists = fileNamesList.Any(fileNames => File.Exists(fileNames.Value));
+      if (isAnyConvertedFileAlreadyExists && !GetUserConfirmation(Resources.MultipleFilesOverwriteConfirmation))
+        Environment.Exit((int)ExitCode.Success);
+
+      return fileNamesList;
+    }
+
+    /// <summary>
+    /// Конвертировать из указанной папки.
+    /// </summary>
+    /// <param name="options">Опции конвертации.</param>
+    private static void ConvertFromFolder(ConvertOptions options)
+    {
+      var files = Directory.GetFiles(options.FolderPath)
+        .Where(name => !name.Contains(ConvertedFilenamePostfix))
+        .ToArray();
+
+      foreach (var fileNames in GetFileNames(options, files))
+      {
+        options.InputPath = Path.Combine(options.FolderPath, Path.GetFileName(fileNames.Key));
+        options.OutputPath = Path.Combine(options.FolderPath, Path.GetFileName(fileNames.Value));
+        ConvertJson(options);
+      }
+    }
+
+    /// <summary>
+    /// Конвертировать из текущей папки.
+    /// </summary>
+    /// <param name="options">Опции конвертации.</param>
+    private static void ConvertFromCurrentDirectory(ConvertOptions options)
+    {
+      var files = Directory.GetFiles(Directory.GetCurrentDirectory())
+        .Where(name => !name.Contains(ConvertedFilenamePostfix))
+        .ToArray();
+
+      foreach (var fileNames in GetFileNames(options, files))
+      {
+        options.InputPath = Path.GetFileName(fileNames.Key);
+        options.OutputPath = Path.GetFileName(fileNames.Value);
+        ConvertJson(options);
       }
     }
 
