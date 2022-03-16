@@ -151,4 +151,7 @@ Switches:
   <data name="UserConfirmationTemplate" xml:space="preserve">
     <value>{0} [y/n]: </value>
   </data>
+  <data name="MultipleFilesOverwriteConfirmation" xml:space="preserve">
+    <value>One or more of converted files exist, overwrite?</value>
+  </data>
 </root>
