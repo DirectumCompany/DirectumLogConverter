@@ -65,16 +65,16 @@ namespace DirectumLogConverter
           Console.WriteLine($"File {options.InputPath} not found");
           Environment.Exit((int)ExitCode.Error);
 				}
-			}
-
-
-
-      // TODO Сделать конвертацию файла, используя options.FolderPath
-
-
+      }
 
       if (string.IsNullOrEmpty(options.OutputPath))
         options.OutputPath = GetConvertedFileName(options.InputPath, options.CsvFormat);
+
+      if (!string.IsNullOrEmpty(options.FolderPath))
+      {
+        options.InputPath = Path.Combine(options.FolderPath, options.InputPath);
+        options.OutputPath = Path.Combine(options.FolderPath, options.OutputPath);
+      }
 
       if (File.Exists(options.OutputPath) && !GetUserConfirmation(string.Format(Resources.FileOverwriteConfirmation, options.OutputPath)))
         Environment.Exit((int)ExitCode.Success);
