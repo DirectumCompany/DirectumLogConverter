@@ -16,6 +16,11 @@ namespace DirectumLogConverter
     #region Поля и свойства
 
     /// <summary>
+    /// Опции конвертации.
+    /// </summary>
+    private static ConvertOptions CurrentOptions;
+
+    /// <summary>
     /// Количество потоков, которое будет использовано для конвертации.
     /// </summary>
     private static readonly int threadsCount = Environment.ProcessorCount * 2;
@@ -40,6 +45,7 @@ namespace DirectumLogConverter
     /// <param name="options">Опции конвертации.</param>
     internal static void ConvertJson(ConvertOptions options)
     {
+      CurrentOptions = options;
       IOutputLineFormatter formatter = options.CsvFormat ? new CsvLineFormatter() : new TsvLineFormatter();
       using var readerStream = new FileStream(options.InputPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, FileOptions.SequentialScan);
       using var reader = new StreamReader(readerStream, Encoding.UTF8);
@@ -125,6 +131,11 @@ namespace DirectumLogConverter
               break;
             case "span":
               value = ConvertSpan(jsonPair.Value);
+              break;
+            case "mt":
+              value = Convert(jsonPair.Value);
+              if (CurrentOptions.NeedMergingArgumentsIntoMessageText && jsonDict.TryGetValue("args", out var argsJson))
+                value = Converter.MergeArgumentsIntoMessage(value, ConvertArguments(argsJson));
               break;
             default:
               value = Convert(jsonPair.Value);
@@ -231,6 +242,43 @@ namespace DirectumLogConverter
       }
 
       return result.ToString();
+    }
+
+    /// <summary>
+    /// Раскрыть параметры сообщения в его текст.
+    /// </summary>
+    /// <param name="message">Сообщение.</param>
+    /// <param name="args">Параметры.</param>
+    /// <returns>Строку с подставленными значениями аргументов в тексте сообщения.</returns>
+    private static string MergeArgumentsIntoMessage(string message, string args)
+    {
+      try
+      {
+        if (string.IsNullOrEmpty(args))
+          return message;
+
+        args = args.Replace("(", "{").Replace(")", "}");
+        var parsedArgs = JObject.Parse(args);
+
+        foreach (var arg in parsedArgs)
+        {
+          var keyString = arg.Key.ToString();
+          var valueString = arg.Value.ToString();
+          if (string.IsNullOrEmpty(valueString))
+            valueString = "Empty value";
+
+          var replacingString = $"{keyString}:{valueString}";
+          message = message.Replace(keyString, replacingString);
+        }
+
+        message = message.Replace("{", string.Empty).Replace("}", string.Empty);
+      }
+      catch (Exception)
+      {
+        // В случае ошибки вернётся сообщение без изменений.
+      }
+
+      return message;
     }
 
     #endregion

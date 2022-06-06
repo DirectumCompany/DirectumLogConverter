@@ -20,6 +20,9 @@ namespace DirectumLogConverter
     [Option('c', "csv", Default = false)]
     public bool CsvFormat { get; set; }
 
+    [Option('m', "mergeArguments", Default = false)]
+    public bool NeedMergingArgumentsIntoMessageText { get; set; }
+
     #endregion
 
     #region Методы
