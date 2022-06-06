@@ -135,7 +135,7 @@ namespace DirectumLogConverter
             case "mt":
               value = Convert(jsonPair.Value);
               if (CurrentOptions.NeedMergingArgumentsIntoMessageText && jsonDict.TryGetValue("args", out var argsJson))
-                value = Converter.MergeArgumentsIntoMessage(value, ConvertArguments(argsJson));
+                value = Converter.MergeArgumentsIntoMessage(value, argsJson);
               break;
             default:
               value = Convert(jsonPair.Value);
@@ -250,29 +250,24 @@ namespace DirectumLogConverter
     /// <param name="message">Сообщение.</param>
     /// <param name="args">Параметры.</param>
     /// <returns>Строку с подставленными значениями аргументов в тексте сообщения.</returns>
-    private static string MergeArgumentsIntoMessage(string message, string args)
+    private static string MergeArgumentsIntoMessage(string message, IJEnumerable<JToken> args)
     {
       try
       {
-        if (string.IsNullOrEmpty(args))
-          return message;
+        var jsonArgs = JObject.Parse(Convert(args, "{", "}"));
+        foreach (var arg in jsonArgs)
+				{
+					var keyString = arg.Key.ToString();
+					var valueString = arg.Value.ToString();
+					if (string.IsNullOrEmpty(valueString))
+						valueString = "Empty value";
 
-        args = args.Replace("(", "{").Replace(")", "}");
-        var parsedArgs = JObject.Parse(args);
+					var replacingString = $"{keyString}:{valueString}";
+					message = message.Replace(keyString, replacingString);
+				}
 
-        foreach (var arg in parsedArgs)
-        {
-          var keyString = arg.Key.ToString();
-          var valueString = arg.Value.ToString();
-          if (string.IsNullOrEmpty(valueString))
-            valueString = "Empty value";
-
-          var replacingString = $"{keyString}:{valueString}";
-          message = message.Replace(keyString, replacingString);
-        }
-
-        message = message.Replace("{", string.Empty).Replace("}", string.Empty);
-      }
+				message = message.Replace("{", string.Empty).Replace("}", string.Empty);
+			}
       catch (Exception)
       {
         // В случае ошибки вернётся сообщение без изменений.
