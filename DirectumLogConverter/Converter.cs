@@ -259,11 +259,8 @@ namespace DirectumLogConverter
 				{
 					var keyString = arg.Key.ToString();
 					var valueString = arg.Value.ToString();
-					if (string.IsNullOrEmpty(valueString))
-						valueString = "Empty value";
-
-					var replacingString = $"{keyString}:{valueString}";
-					message = message.Replace(keyString, replacingString);
+          			var replacingString = string.IsNullOrEmpty(valueString) ? $"({keyString}:Empty)" : valueString;
+          			message = message.Replace(keyString, replacingString, StringComparison.Ordinal);
 				}
 
 				message = message.Replace("{", string.Empty).Replace("}", string.Empty);
