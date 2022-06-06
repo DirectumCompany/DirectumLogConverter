@@ -256,15 +256,15 @@ namespace DirectumLogConverter
       {
         var jsonArgs = JObject.Parse(Convert(args, "{", "}"));
         foreach (var arg in jsonArgs)
-				{
-					var keyString = arg.Key.ToString();
-					var valueString = arg.Value.ToString();
-          			var replacingString = string.IsNullOrEmpty(valueString) ? $"({keyString}:Empty)" : valueString;
-          			message = message.Replace(keyString, replacingString, StringComparison.Ordinal);
-				}
-
-				message = message.Replace("{", string.Empty).Replace("}", string.Empty);
-			}
+        {
+          var keyString = arg.Key.ToString();
+          var valueString = arg.Value.ToString();
+          var replacingString = string.IsNullOrEmpty(valueString) ? $"({keyString}:Empty)" : valueString;
+          message = message.Replace(keyString, replacingString, StringComparison.Ordinal);
+        }
+        
+        message = message.Replace("{", string.Empty).Replace("}", string.Empty);
+      }
       catch (Exception)
       {
         // В случае ошибки вернётся сообщение без изменений.
