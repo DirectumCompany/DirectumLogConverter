@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using CommandLine;
 using DirectumLogConverter.Properties;
 
@@ -20,10 +21,9 @@ namespace DirectumLogConverter
     [Option('c', "csv", Default = false)]
     public bool CsvFormat { get; set; }
 
-		[Option('b', "batch", Default = false)]
-		public bool BatchConvert { get; set; }
+    [Option('b', "batch", Default = false)]
+    public bool BatchConvert { get; set; }
 
-    [Option('f', "folder", Default = "")]
     public string FolderPath { get; set; }
 
     #endregion
@@ -70,6 +70,12 @@ namespace DirectumLogConverter
 
           ShowUsageAndExit();
         });
+      if (Directory.Exists(result.InputPath))
+      {
+        result.FolderPath = result.InputPath;
+        result.BatchConvert = true;
+      }
+
       return result;
     }
 

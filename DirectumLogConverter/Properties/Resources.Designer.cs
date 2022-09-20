@@ -130,8 +130,14 @@ namespace DirectumLogConverter.Properties {
         ///
         ///  {0} [source] [destination]
         ///
-        ///  [source] argument is mandatory, [destination] is not, if omitted it will use source file name with postfix &quot;{1}&quot; as destination file name.
-        ///
+        ///  [source] argument is mandatory if need to convert certain file, [destination] is not, if omitted it will use source file name with postfix &quot;{1}&quot; as destination file name.
+        ///	
+        ///	{0} [source folder]
+        ///	convert all files in source folder.
+        ///	
+        ///	{0} -b 
+        ///	convert all files in the folder where command is called.
+        ///	
         ///Switches:
         ///
         ///  -c, --csv: Use csv as output format..
