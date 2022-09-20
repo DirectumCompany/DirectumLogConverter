@@ -16,14 +16,14 @@ namespace DirectumLogConverter
     /// <returns>Код, с которым завершилась работа приложения.</returns>
     public static int Main(string[] args)
     {
-			var options = ConvertOptions.GetFromArgs(args);
+      var options = ConvertOptions.GetFromArgs(args);
       var stopwatch = new Stopwatch();
       try
       {
         stopwatch.Start();
-				if (options.BatchConvert)
-					Converter.BatchConvert(options);
-				else
+        if (options.BatchConvert)
+          Converter.BatchConvert(options);
+        else
           Converter.Convert(options);
       }
       catch (Exception ex)

@@ -57,14 +57,14 @@ namespace DirectumLogConverter
     internal static void Convert(ConvertOptions options)
     {
       if (options.InputPath == null)
-			{
+      {
         Console.WriteLine("Enter file name");
         options.InputPath = Console.ReadLine();
-				if (!File.Exists(options.InputPath))
-				{
+        if (!File.Exists(options.InputPath))
+        {
           Console.WriteLine($"File {options.InputPath} not found");
           Environment.Exit((int)ExitCode.Error);
-				}
+        }
       }
 
       if (string.IsNullOrEmpty(options.OutputPath))
