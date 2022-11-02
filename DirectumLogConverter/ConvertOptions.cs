@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using CommandLine;
 using DirectumLogConverter.Properties;
 
@@ -11,7 +12,7 @@ namespace DirectumLogConverter
   {
     #region Поля и свойства
 
-    [Value(0, MetaName = "Source", Required = true)]
+    [Value(0, MetaName = "Source")]
     public string InputPath { get; set; }
 
     [Value(1, MetaName = "Destination")]
@@ -19,6 +20,11 @@ namespace DirectumLogConverter
 
     [Option('c', "csv", Default = false)]
     public bool CsvFormat { get; set; }
+
+    [Option('b', "batch", Default = false)]
+    public bool BatchConvert { get; set; }
+
+    public string FolderPath { get; set; }
 
     #endregion
 
@@ -29,8 +35,8 @@ namespace DirectumLogConverter
     /// </summary>
     private static void ShowUsageAndExit()
     {
-      Console.WriteLine(Resources.Usage, AppDomain.CurrentDomain.FriendlyName, Program.ConvertedFilenamePostfix);
-      Environment.Exit((int)Program.ExitCode.Success);
+      Console.WriteLine(Resources.Usage, AppDomain.CurrentDomain.FriendlyName, Converter.ConvertedFilenamePostfix);
+      Environment.Exit((int)ExitCode.Success);
     }
 
     /// <summary>
@@ -58,12 +64,18 @@ namespace DirectumLogConverter
             if (error.Tag == ErrorType.UnknownOptionError)
             {
               Console.Error.WriteLine(Resources.ResourceManager.GetString(nameof(ErrorType.UnknownOptionError)), ((UnknownOptionError)error).Token);
-              Environment.Exit((int)Program.ExitCode.Error);
+              Environment.Exit((int)ExitCode.Error);
             }
           }
 
           ShowUsageAndExit();
         });
+      if (Directory.Exists(result.InputPath))
+      {
+        result.FolderPath = result.InputPath;
+        result.BatchConvert = true;
+      }
+
       return result;
     }
 

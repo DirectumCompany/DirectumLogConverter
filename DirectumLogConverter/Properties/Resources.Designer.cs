@@ -61,15 +61,6 @@ namespace DirectumLogConverter.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to If omitted it will use source file name with postfix &quot;{1}&quot; as destination file name..
-        /// </summary>
-        internal static string AdditionalUsage {
-            get {
-                return ResourceManager.GetString("AdditionalUsage", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Done! {0:F}s elapsed..
         /// </summary>
         internal static string ConversionDone {
@@ -88,15 +79,6 @@ namespace DirectumLogConverter.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Use csv as output format..
-        /// </summary>
-        internal static string CsvFormatArgumentHint {
-            get {
-                return ResourceManager.GetString("CsvFormatArgumentHint", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to File &quot;{0}&quot; already exists, overwrite?.
         /// </summary>
         internal static string FileOverwriteConfirmation {
@@ -106,20 +88,29 @@ namespace DirectumLogConverter.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Input file path..
+        ///   Looks up a localized string similar to Required argument is missing..
         /// </summary>
-        internal static string InputPathArgumentHint {
+        internal static string MissingRequiredOptionError {
             get {
-                return ResourceManager.GetString("InputPathArgumentHint", resourceCulture);
+                return ResourceManager.GetString("MissingRequiredOptionError", resourceCulture);
             }
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Output file path..
+        ///   Looks up a localized string similar to One or more of converted files exist, overwrite?.
         /// </summary>
-        internal static string OutputPathArgumentHint {
+        internal static string MultipleFilesOverwriteConfirmation {
             get {
-                return ResourceManager.GetString("OutputPathArgumentHint", resourceCulture);
+                return ResourceManager.GetString("MultipleFilesOverwriteConfirmation", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Option &quot;{0}&quot; is unknown..
+        /// </summary>
+        internal static string UnknownOptionError {
+            get {
+                return ResourceManager.GetString("UnknownOptionError", resourceCulture);
             }
         }
         
@@ -139,7 +130,17 @@ namespace DirectumLogConverter.Properties {
         ///
         ///  {0} [source] [destination]
         ///
-        ///  [source] argument is mandatory, [destination] is not, .
+        ///  [source] argument is mandatory if need to convert certain file, [destination] is not, if omitted it will use source file name with postfix &quot;{1}&quot; as destination file name.
+        ///	
+        ///	{0} [source folder]
+        ///	convert all files in source folder.
+        ///	
+        ///	{0} -b 
+        ///	convert all files in the folder where command is called.
+        ///	
+        ///Switches:
+        ///
+        ///  -c, --csv: Use csv as output format..
         /// </summary>
         internal static string Usage {
             get {

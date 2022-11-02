@@ -142,13 +142,22 @@ Usage of {0}:
 
   {0} [source] [destination]
 
-  [source] argument is mandatory, [destination] is not, if omitted it will use source file name with postfix "{1}" as destination file name.
-
+  [source] argument is mandatory if need to convert certain file, [destination] is not, if omitted it will use source file name with postfix "{1}" as destination file name.
+	
+	{0} [source folder]
+	convert all files in source folder.
+	
+	{0} -b 
+	convert all files in the folder where command is called.
+	
 Switches:
 
   -c, --csv: Use csv as output format.</value>
   </data>
   <data name="UserConfirmationTemplate" xml:space="preserve">
     <value>{0} [y/n]: </value>
+  </data>
+  <data name="MultipleFilesOverwriteConfirmation" xml:space="preserve">
+    <value>One or more of converted files exist, overwrite?</value>
   </data>
 </root>
