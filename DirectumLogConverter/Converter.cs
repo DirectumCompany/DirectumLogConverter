@@ -83,15 +83,21 @@ namespace DirectumLogConverter
     }
 
     /// <summary>
-    /// Конвертировать множество файлов.
+    /// Конвертировать из папки.
     /// </summary>
     /// <param name="options">Опции конвертации.</param>
-    internal static void BatchConvert(ConvertOptions options)
+    internal static void ConvertFromFolder(ConvertOptions options)
     {
-      if (string.IsNullOrEmpty(options.FolderPath))
-        ConvertFromCurrentDirectory(options);
-      else
-        ConvertFromFolder(options);
+      var files = Directory.GetFiles(options.FolderPath)
+        .Where(name => !name.Contains(ConvertedFilenamePostfix))
+        .ToArray<string>();
+
+      foreach (var fileNames in GetFileNames(options, files))
+      {
+        options.InputPath = Path.Combine(options.FolderPath, Path.GetFileName(fileNames.Key));
+        options.OutputPath = Path.Combine(options.FolderPath, Path.GetFileName(fileNames.Value));
+        ConvertJson(options);
+      }
     }
 
     /// <summary>
@@ -349,41 +355,6 @@ namespace DirectumLogConverter
         Environment.Exit((int)ExitCode.Success);
 
       return fileNamesList;
-    }
-
-    private static string[] GetFilesForConversion(string path)
-		{
-      return Directory.GetFiles(path).Where(name => !name.Contains(ConvertedFilenamePostfix)).ToArray<string>();
-    }
-
-    /// <summary>
-    /// Конвертировать из указанной папки.
-    /// </summary>
-    /// <param name="options">Опции конвертации.</param>
-    private static void ConvertFromFolder(ConvertOptions options)
-    {
-      var files = GetFilesForConversion(options.FolderPath);
-      foreach (var fileNames in GetFileNames(options, files))
-      {
-        options.InputPath = Path.Combine(options.FolderPath, Path.GetFileName(fileNames.Key));
-        options.OutputPath = Path.Combine(options.FolderPath, Path.GetFileName(fileNames.Value));
-        ConvertJson(options);
-      }
-    }
-
-    /// <summary>
-    /// Конвертировать из текущей папки.
-    /// </summary>
-    /// <param name="options">Опции конвертации.</param>
-    private static void ConvertFromCurrentDirectory(ConvertOptions options)
-    {
-      var files = GetFilesForConversion(Directory.GetCurrentDirectory());
-      foreach (var fileNames in GetFileNames(options, files))
-      {
-        options.InputPath = Path.GetFileName(fileNames.Key);
-        options.OutputPath = Path.GetFileName(fileNames.Value);
-        ConvertJson(options);
-      }
     }
 
     #endregion

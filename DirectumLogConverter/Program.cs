@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.IO;
 using DirectumLogConverter.Properties;
 
 namespace DirectumLogConverter
@@ -22,9 +23,15 @@ namespace DirectumLogConverter
       {
         stopwatch.Start();
         if (options.BatchConvert)
-          Converter.BatchConvert(options);
+        {
+          if (string.IsNullOrEmpty(options.FolderPath))
+            options.FolderPath = Directory.GetCurrentDirectory();
+          Converter.ConvertFromFolder(options);
+        }
         else
+        {
           Converter.Convert(options);
+        }
       }
       catch (Exception ex)
       {
