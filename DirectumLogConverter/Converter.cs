@@ -302,7 +302,7 @@ namespace DirectumLogConverter
     /// <param name="isCsvFormat">Конвертировать в формат CSV?</param>
     /// <returns>Сконвертированное имя.</returns>
     private static string GetConvertedFileName(string name, bool isCsvFormat)
-		{
+    {
       var extension = Path.GetExtension(name);
       var newExtension = isCsvFormat ? CsvFilenameExtension : extension;
       return name.Substring(0, name.Length - extension?.Length ?? 0) + ConvertedFilenamePostfix + newExtension;
@@ -351,16 +351,18 @@ namespace DirectumLogConverter
       return fileNamesList;
     }
 
+    private static string[] GetFilesForConversion(string path)
+		{
+      return Directory.GetFiles(path).Where(name => !name.Contains(ConvertedFilenamePostfix)).ToArray<string>();
+    }
+
     /// <summary>
     /// Конвертировать из указанной папки.
     /// </summary>
     /// <param name="options">Опции конвертации.</param>
     private static void ConvertFromFolder(ConvertOptions options)
     {
-      var files = Directory.GetFiles(options.FolderPath)
-        .Where(name => !name.Contains(ConvertedFilenamePostfix))
-        .ToArray();
-
+      var files = GetFilesForConversion(options.FolderPath);
       foreach (var fileNames in GetFileNames(options, files))
       {
         options.InputPath = Path.Combine(options.FolderPath, Path.GetFileName(fileNames.Key));
@@ -375,10 +377,7 @@ namespace DirectumLogConverter
     /// <param name="options">Опции конвертации.</param>
     private static void ConvertFromCurrentDirectory(ConvertOptions options)
     {
-      var files = Directory.GetFiles(Directory.GetCurrentDirectory())
-        .Where(name => !name.Contains(ConvertedFilenamePostfix))
-        .ToArray();
-
+      var files = GetFilesForConversion(Directory.GetCurrentDirectory());
       foreach (var fileNames in GetFileNames(options, files))
       {
         options.InputPath = Path.GetFileName(fileNames.Key);
