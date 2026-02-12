@@ -277,25 +277,22 @@ namespace DirectumLogConverter
     private static string ConvertException(IJEnumerable<JToken> jTokens)
     {
       var result = new StringBuilder("\n");
-      var type = jTokens.OfType<JProperty>().FirstOrDefault(property => property.Name == "type")?.Value.ToString();
-      var message = jTokens.OfType<JProperty>().FirstOrDefault(property => property.Name == "m")?.Value.ToString();
-      var stack = jTokens.OfType<JProperty>().FirstOrDefault(property => property.Name == "stack")?.Value.ToString();
+      var props = ParseExceptionProperties(jTokens);
+      props.TryGetValue("type", out var type);
+      props.TryGetValue("m", out var message);
+      props.TryGetValue("stack", out var stack);
 
-      if (!string.IsNullOrEmpty(type))
-        result.Append(type);
-      else
-        result.AppendJoin('\n', jTokens.Select(jt => jt.ToString()));
+      var header = BuildHeader(type, message);
 
-      if (!string.IsNullOrEmpty(message))
-      {
-        result.Append(": ");
-        result.Append(message);
-      }
+      if (!string.IsNullOrEmpty(header))
+        result.Append(header);
 
       if (!string.IsNullOrEmpty(stack))
       {
-        result.Append("\n   ");
-        result.Append(stack.Replace("\r\n", "\n"));
+        if (!string.IsNullOrEmpty(header))
+          result.Append("\n   ");
+
+        result.Append(stack);
       }
 
       return result.ToString();
@@ -355,6 +352,36 @@ namespace DirectumLogConverter
         Environment.Exit((int)ExitCode.Success);
 
       return fileNamesList;
+    }
+
+    /// <summary>
+    /// Преобразует JSON-токены исключения в словарь свойств.
+    /// </summary>
+    /// <param name="jTokens">Токены.</param>
+    /// <returns>Возвращает словарь свойств.</returns>
+    private static IReadOnlyDictionary<string, string> ParseExceptionProperties(IJEnumerable<JToken> jTokens)
+    {
+      return jTokens
+        .OfType<JProperty>()
+        .Where(p => p.Value != null)
+        .ToDictionary(
+          p => p.Name,
+          p => p.Value.ToString()
+        );
+    }
+
+    /// <summary>
+    /// Формирует заголовок исключения по типу и сообщению.
+    /// </summary>
+    /// <param name="type">Тип исключения.</param>
+    /// <param name="message">Текст сообщения об ошибке.</param>
+    /// <returns>Возвращает заголовок исключения.</returns>
+    private static string BuildHeader(string type, string message)
+    {
+      if (!string.IsNullOrEmpty(type))
+        return string.IsNullOrEmpty(message) ? type : $"{type}: {message}";
+
+      return message ?? string.Empty;
     }
 
     #endregion
