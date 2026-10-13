@@ -26,7 +26,8 @@ namespace DirectumLogConverter
       {"pid", 10},
       {"l", 6},
       {"lg", 30},
-      {"tr", 20}
+      {"tr", 20},
+      {"tab", 5}
     };
 
     #endregion

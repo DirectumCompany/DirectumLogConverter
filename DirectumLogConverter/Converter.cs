@@ -173,7 +173,7 @@ namespace DirectumLogConverter
     {
       try
       {
-        var logLineElements = new Dictionary<string, string>() { { "t", "" }, { "pid", "" }, { "l" , "" }, {"tr", "" } };
+        var logLineElements = new Dictionary<string, string>() { { "t", "" }, { "pid", "" }, { "l" , "" }, {"tr", "" }, { "tab", "" } };
         var jsonDict = GetJsonValues(line);
 
         foreach (var jsonPair in jsonDict)
