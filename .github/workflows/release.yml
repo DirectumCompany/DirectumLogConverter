@@ -4,18 +4,18 @@ on:
   release:
     types: [published]
 
+permissions:
+  contents: write
+
 jobs:
   release:
     name: Release
     strategy:
       matrix:
-        kind: ['linux', 'windows']
         include:
-          - kind: linux
-            os: ubuntu-latest
+          - os: ubuntu-latest
             target: linux-x64
-          - kind: windows
-            os: windows-latest
+          - os: windows-latest
             target: win-x64
     runs-on: ${{ matrix.os }}
     steps:
@@ -25,15 +25,16 @@ jobs:
       - name: Setup dotnet
         uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: '10.0.x'
 
       - name: Build
         shell: bash
+        env:
+          TAG: ${{ github.event.release.tag_name }}
         run: |
-          tag=$(git describe --tags --abbrev=0)
-          release_name="DirectumLogConverter-$tag-${{ matrix.target }}"
+          release_name="DirectumLogConverter-$TAG-${{ matrix.target }}"
           # Build everything
-          dotnet publish --runtime "${{ matrix.target }}" -c Release -o "$release_name"
+          dotnet publish DirectumLogConverter/DirectumLogConverter.csproj --runtime "${{ matrix.target }}" -c Release -o "$release_name"
           # Pack files
           if [ "${{ matrix.target }}" == "win-x64" ]; then
             # Pack to zip for Windows
@@ -49,6 +50,3 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: "DirectumLogConverter-*"
-        env:
-
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
